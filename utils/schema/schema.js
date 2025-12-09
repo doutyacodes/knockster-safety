@@ -79,8 +79,6 @@ export const USER_ROLES = mysqlTable("user_roles", {
   role_id: int("role_id")
     .notNull()
     .references(() => ROLES.id, { onDelete: "cascade" }),
-
-  created_at: timestamp("created_at").defaultNow(),
 });
 
 export const ORGANISATIONS = mysqlTable("organisations", {

@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Filter, Plus, Users, Mail, Phone, MoreVertical, 
-  Edit, Trash2, Eye, RefreshCw, Loader2, User, Shield,
-  Calendar, ArrowUpDown, CheckCircle, XCircle
+  Trash2, Eye, RefreshCw, Loader2, User, Shield, Calendar, 
+  ArrowUpDown, CheckCircle, XCircle, Smartphone, Clock, 
+  ShieldAlert, AlertCircle, MapPin, Contact, Lock, Globe
 } from 'lucide-react';
 import CreateUserModal from './CreateUserModal';
+import UserDetailModal from './UserDetailModal';
 
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center space-x-2">
@@ -15,14 +17,80 @@ const LoadingSpinner = () => (
   </div>
 );
 
-const UserRow = ({ user, onView, onEdit, onDelete }) => {
+const StatusToggle = ({ status, userId, onToggle }) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleToggle = async () => {
+    if (!confirm(`Are you sure you want to ${status === 'active' ? 'deactivate' : 'activate'} this user?`)) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await onToggle(userId, status === 'active' ? 'suspended' : 'active');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleToggle}
+      disabled={isLoading}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+        status === 'active' ? 'bg-green-600' : 'bg-gray-300'
+      } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+          status === 'active' ? 'translate-x-6' : 'translate-x-1'
+        }`}
+      />
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Loader2 className="w-3 h-3 animate-spin text-white" />
+        </div>
+      )}
+    </button>
+  );
+};
+
+const UserRow = ({ user, onView, onDelete, onStatusToggle }) => {
   const [showActions, setShowActions] = useState(false);
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'active':
+        return (
+          <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full inline-flex items-center">
+            <div className="w-2 h-2 rounded-full bg-green-500 mr-1" />
+            Active
+          </span>
+        );
+      case 'suspended':
+        return (
+          <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full inline-flex items-center">
+            <AlertCircle className="w-3 h-3 mr-1" />
+            Suspended
+          </span>
+        );
+      case 'deleted':
+        return (
+          <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full inline-flex items-center">
+            <ShieldAlert className="w-3 h-3 mr-1" />
+            Deleted
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <tr className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-      <td className="py-4 px-6">
-        <div className="flex items-center space-x-4">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-50 border border-blue-200 overflow-hidden flex items-center justify-center">
+      <td className="py-4 px-4 md:px-6">
+        <div className="flex items-center space-x-3 md:space-x-4">
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-50 border border-blue-200 overflow-hidden flex items-center justify-center">
             {user.profile_pic_url ? (
               <img 
                 src={user.profile_pic_url} 
@@ -30,11 +98,11 @@ const UserRow = ({ user, onView, onEdit, onDelete }) => {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <User className="w-5 h-5 text-blue-600" />
+              <User className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
             )}
           </div>
           <div>
-            <h4 className="font-medium text-gray-900">{user.full_name}</h4>
+            <h4 className="font-medium text-gray-900 text-sm md:text-base">{user.full_name}</h4>
             <div className="flex items-center space-x-2 mt-1">
               <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
                 User
@@ -44,51 +112,53 @@ const UserRow = ({ user, onView, onEdit, onDelete }) => {
         </div>
       </td>
       
-      <td className="py-4 px-6">
+      <td className="py-4 px-4 md:px-6">
         <div className="flex items-center">
-          <Mail className="w-4 h-4 text-gray-400 mr-2" />
-          <span className="text-sm text-gray-600">{user.email}</span>
+          <Mail className="w-4 h-4 text-gray-400 mr-2 hidden sm:block" />
+          <span className="text-sm text-gray-600 truncate max-w-[150px] md:max-w-none">{user.email}</span>
         </div>
       </td>
       
-      <td className="py-4 px-6">
+      <td className="py-4 px-4 md:px-6">
         {user.phone ? (
           <div className="flex items-center">
-            <Phone className="w-4 h-4 text-gray-400 mr-2" />
+            <Phone className="w-4 h-4 text-gray-400 mr-2 hidden sm:block" />
             <span className="text-sm text-gray-600">{user.phone}</span>
           </div>
         ) : (
-          <span className="text-sm text-gray-400">Not provided</span>
+          <span className="text-sm text-gray-400">-</span>
         )}
       </td>
       
-      <td className="py-4 px-6">
-        <div className="flex items-center space-x-2">
-          {user.is_active ? (
-            <>
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-sm font-medium text-green-600">Active</span>
-            </>
-          ) : (
-            <>
-              <div className="w-2 h-2 rounded-full bg-gray-300" />
-              <span className="text-sm font-medium text-gray-500">Inactive</span>
-            </>
-          )}
+      <td className="py-4 px-4 md:px-6">
+        <div className="flex flex-col space-y-2">
+          <div>{getStatusBadge(user.status)}</div>
+          <StatusToggle 
+            status={user.status} 
+            userId={user.id} 
+            onToggle={onStatusToggle}
+          />
         </div>
       </td>
       
-      <td className="py-4 px-6">
-        <span className="text-sm text-gray-600">
-          {new Date(user.created_at).toLocaleDateString()}
-        </span>
+      <td className="py-4 px-4 md:px-6">
+        <div className="flex items-center">
+          <Calendar className="w-4 h-4 text-gray-400 mr-2 hidden sm:block" />
+          <span className="text-sm text-gray-600">
+            {new Date(user.created_at).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            })}
+          </span>
+        </div>
       </td>
       
-      <td className="py-4 px-6">
+      <td className="py-4 px-4 md:px-6">
         <div className="relative">
           <button
             onClick={() => setShowActions(!showActions)}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1.5 md:p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <MoreVertical className="w-5 h-5" />
           </button>
@@ -99,33 +169,25 @@ const UserRow = ({ user, onView, onEdit, onDelete }) => {
                 className="fixed inset-0 z-40" 
                 onClick={() => setShowActions(false)}
               />
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-2">
+              <div className="absolute right-0 mt-2 w-36 md:w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-2">
                 <button
                   onClick={() => {
                     onView(user);
                     setShowActions(false);
                   }}
-                  className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 flex items-center space-x-3"
+                  className="w-full px-3 py-2 md:px-4 text-left text-gray-700 hover:bg-gray-50 flex items-center space-x-2 md:space-x-3 text-sm md:text-base"
                 >
                   <Eye className="w-4 h-4" />
                   <span>View Details</span>
                 </button>
                 <button
                   onClick={() => {
-                    onEdit(user);
+                    if (confirm(`Are you sure you want to delete "${user.full_name}"? This action cannot be undone.`)) {
+                      onDelete(user);
+                    }
                     setShowActions(false);
                   }}
-                  className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 flex items-center space-x-3"
-                >
-                  <Edit className="w-4 h-4" />
-                  <span>Edit</span>
-                </button>
-                <button
-                  onClick={() => {
-                    onDelete(user);
-                    setShowActions(false);
-                  }}
-                  className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 flex items-center space-x-3"
+                  className="w-full px-3 py-2 md:px-4 text-left text-red-600 hover:bg-red-50 flex items-center space-x-2 md:space-x-3 text-sm md:text-base"
                 >
                   <Trash2 className="w-4 h-4" />
                   <span>Delete</span>
@@ -146,10 +208,12 @@ export default function UsersPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
-    inactive: 0
+    suspended: 0,
+    deleted: 0
   });
 
   useEffect(() => {
@@ -190,7 +254,7 @@ export default function UsersPage() {
   };
 
   const handleDeleteUser = async (user) => {
-    if (!confirm(`Are you sure you want to delete "${user.full_name}"? This action cannot be undone.`)) {
+    if (!confirm(`Are you sure you want to permanently delete "${user.full_name}"? This action cannot be undone.`)) {
       return;
     }
 
@@ -212,13 +276,33 @@ export default function UsersPage() {
     }
   };
 
-  const handleEditUser = (user) => {
-    // Open edit modal
-    alert(`Edit ${user.full_name}`);
+  const handleStatusToggle = async (userId, newStatus) => {
+    try {
+      const response = await fetch(`/api/moderator/users/${userId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        setUsers(users.map(user => 
+          user.id === userId ? { ...user, status: newStatus } : user
+        ));
+        fetchStats();
+      } else {
+        const data = await response.json();
+        alert(data.message || 'Failed to update status');
+      }
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      alert('Failed to update status');
+    }
   };
 
   const handleViewUser = (user) => {
-    window.location.href = `/organisation/users/${user.id}`;
+    setSelectedUser(user);
   };
 
   const filteredUsers = users.filter(user => {
@@ -227,8 +311,7 @@ export default function UsersPage() {
                          user.phone?.includes(searchQuery);
     
     const matchesStatus = statusFilter === 'all' || 
-                         (statusFilter === 'active' && user.is_active) ||
-                         (statusFilter === 'inactive' && !user.is_active);
+                         user.status === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
@@ -250,98 +333,110 @@ export default function UsersPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="px-6 py-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="px-4 py-4 md:px-6 md:py-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-6 space-y-4 md:space-y-0">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-              <p className="text-gray-600 mt-1">Manage users in your organisation</p>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900">Users</h1>
+              <p className="text-gray-600 mt-1 text-sm md:text-base">Manage users in your organisation</p>
             </div>
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 font-medium"
+                className="px-4 py-2 md:px-6 md:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 font-medium text-sm md:text-base"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4 md:w-5 md:h-5" />
                 <span>Add User</span>
               </button>
             </div>
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-6">
+            <div className="bg-white border border-gray-200 rounded-lg p-3 md:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Users</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                  <p className="text-xs md:text-sm text-gray-600">Total Users</p>
+                  <p className="text-xl md:text-2xl font-bold text-gray-900">{stats.total}</p>
                 </div>
-                <div className="p-2 bg-blue-50 rounded-lg">
-                  <Users className="w-6 h-6 text-blue-600" />
+                <div className="p-1.5 md:p-2 bg-blue-50 rounded-lg">
+                  <Users className="w-4 h-4 md:w-6 md:h-6 text-blue-600" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="bg-white border border-gray-200 rounded-lg p-3 md:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Active</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
+                  <p className="text-xs md:text-sm text-gray-600">Active</p>
+                  <p className="text-xl md:text-2xl font-bold text-gray-900">{stats.active}</p>
                 </div>
-                <div className="p-2 bg-green-50 rounded-lg">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
+                <div className="p-1.5 md:p-2 bg-green-50 rounded-lg">
+                  <CheckCircle className="w-4 h-4 md:w-6 md:h-6 text-green-600" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="bg-white border border-gray-200 rounded-lg p-3 md:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Inactive</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.inactive}</p>
+                  <p className="text-xs md:text-sm text-gray-600">Suspended</p>
+                  <p className="text-xl md:text-2xl font-bold text-gray-900">{stats.suspended}</p>
                 </div>
-                <div className="p-2 bg-gray-50 rounded-lg">
-                  <XCircle className="w-6 h-6 text-gray-600" />
+                <div className="p-1.5 md:p-2 bg-yellow-50 rounded-lg">
+                  <AlertCircle className="w-4 h-4 md:w-6 md:h-6 text-yellow-600" />
                 </div>
               </div>
             </div>
+
+            {/* <div className="bg-white border border-gray-200 rounded-lg p-3 md:p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs md:text-sm text-gray-600">Deleted</p>
+                  <p className="text-xl md:text-2xl font-bold text-gray-900">{stats.deleted}</p>
+                </div>
+                <div className="p-1.5 md:p-2 bg-red-50 rounded-lg">
+                  <XCircle className="w-4 h-4 md:w-6 md:h-6 text-red-600" />
+                </div>
+              </div>
+            </div> */}
           </div>
 
           {/* Search and Filters */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <div className="flex flex-col space-y-3 md:space-y-0 md:flex-row md:items-center justify-between">
+            <div className="relative flex-1 max-w-full md:max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 md:w-5 md:h-5" />
               <input
                 type="text"
-                placeholder="Search users by name, email, or phone..."
+                placeholder="Search users..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                className="w-full pl-9 pr-4 py-2 md:py-3 text-sm md:text-base bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
               />
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-wrap items-center gap-2 md:gap-4">
               <div className="flex items-center space-x-2">
-                <Filter className="w-5 h-5 text-gray-500" />
+                <Filter className="w-4 h-4 text-gray-500 hidden md:block" />
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  className="px-3 py-2 md:px-4 md:py-2.5 text-sm bg-white border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 >
                   <option value="all">All Status</option>
-                  <option value="active">Active Only</option>
-                  <option value="inactive">Inactive Only</option>
+                  <option value="active">Active</option>
+                  <option value="suspended">Suspended</option>
                 </select>
               </div>
 
               <div className="flex items-center space-x-2">
-                <ArrowUpDown className="w-5 h-5 text-gray-500" />
+                <ArrowUpDown className="w-4 h-4 text-gray-500 hidden md:block" />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  className="px-3 py-2 md:px-4 md:py-2.5 text-sm bg-white border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
+                  <option value="newest">Newest</option>
+                  <option value="oldest">Oldest</option>
                   <option value="name">Name A-Z</option>
                 </select>
               </div>
@@ -351,10 +446,10 @@ export default function UsersPage() {
                   fetchUsers();
                   fetchStats();
                 }}
-                className="p-2.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                 title="Refresh"
               >
-                <RefreshCw className="w-5 h-5" />
+                <RefreshCw className="w-4 h-4 md:w-5 md:h-5" />
               </button>
             </div>
           </div>
@@ -362,32 +457,32 @@ export default function UsersPage() {
       </div>
 
       {/* Main Content */}
-      <div className="px-6 py-6">
+      <div className="px-4 py-4 md:px-6 md:py-6">
         {loading ? (
-          <div className="flex items-center justify-center h-64">
+          <div className="flex items-center justify-center h-48 md:h-64">
             <LoadingSpinner />
           </div>
         ) : (
           <>
             {/* Results Summary */}
-            <div className="mb-6">
-              <p className="text-gray-600">
-                Showing <span className="font-semibold text-gray-900">{sortedUsers.length}</span> users
+            <div className="mb-4 md:mb-6">
+              <p className="text-gray-600 text-sm md:text-base">
+                Showing <span className="font-semibold text-gray-900">{sortedUsers.length}</span> user{sortedUsers.length !== 1 ? 's' : ''}
               </p>
             </div>
 
             {/* Users Table */}
             {sortedUsers.length > 0 ? (
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <table className="w-full">
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden overflow-x-auto">
+                <table className="w-full min-w-[600px]">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="py-3 px-6 text-left text-sm font-semibold text-gray-900">Name & Role</th>
-                      <th className="py-3 px-6 text-left text-sm font-semibold text-gray-900">Email</th>
-                      <th className="py-3 px-6 text-left text-sm font-semibold text-gray-900">Phone</th>
-                      <th className="py-3 px-6 text-left text-sm font-semibold text-gray-900">Status</th>
-                      <th className="py-3 px-6 text-left text-sm font-semibold text-gray-900">Joined</th>
-                      <th className="py-3 px-6 text-left text-sm font-semibold text-gray-900">Actions</th>
+                      <th className="py-3 px-4 md:px-6 text-left text-xs md:text-sm font-semibold text-gray-900">User</th>
+                      <th className="py-3 px-4 md:px-6 text-left text-xs md:text-sm font-semibold text-gray-900">Email</th>
+                      <th className="py-3 px-4 md:px-6 text-left text-xs md:text-sm font-semibold text-gray-900">Phone</th>
+                      <th className="py-3 px-4 md:px-6 text-left text-xs md:text-sm font-semibold text-gray-900">Status</th>
+                      <th className="py-3 px-4 md:px-6 text-left text-xs md:text-sm font-semibold text-gray-900">Joined</th>
+                      <th className="py-3 px-4 md:px-6 text-left text-xs md:text-sm font-semibold text-gray-900">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -396,32 +491,32 @@ export default function UsersPage() {
                         key={user.id}
                         user={user}
                         onView={handleViewUser}
-                        onEdit={handleEditUser}
                         onDelete={handleDeleteUser}
+                        onStatusToggle={handleStatusToggle}
                       />
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <div className="bg-white rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
-                <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                  <Users className="w-8 h-8 text-gray-400" />
+              <div className="bg-white rounded-lg border-2 border-dashed border-gray-300 p-6 md:p-12 text-center">
+                <div className="w-12 h-12 md:w-16 md:h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4 md:mb-6">
+                  <Users className="w-6 h-6 md:w-8 md:h-8 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-2">
                   {searchQuery ? 'No matching users' : 'No users yet'}
                 </h3>
-                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                <p className="text-gray-600 mb-4 md:mb-6 max-w-md mx-auto text-sm md:text-base">
                   {searchQuery 
-                    ? 'Try adjusting your search or filters to find what you\'re looking for.'
+                    ? 'Try adjusting your search or filters.'
                     : 'Get started by adding your first user.'}
                 </p>
                 {!searchQuery && (
                   <button
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center space-x-2 font-medium"
+                    className="px-6 py-2 md:px-8 md:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center space-x-2 font-medium text-sm md:text-base"
                   >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-4 h-4 md:w-5 md:h-5" />
                     <span>Add First User</span>
                   </button>
                 )}
@@ -437,6 +532,14 @@ export default function UsersPage() {
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={handleCreateUser}
       />
+
+      {/* User Detail Modal */}
+      {selectedUser && (
+        <UserDetailModal
+          user={selectedUser}
+          onClose={() => setSelectedUser(null)}
+        />
+      )}
     </div>
   );
 }

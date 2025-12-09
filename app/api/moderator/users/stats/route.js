@@ -1,19 +1,18 @@
+// /api/moderator/users/stats
 import { db } from "@/utils/index";
 import { 
-  USERS, USER_PROFILES, ROLES, USER_ROLES, 
-  ORGANISATIONS, ORG_USERS 
+  USERS, ORG_USERS, ROLES 
 } from "@/utils/schema/schema";
-import { NextResponse } from "next/server";
 import { eq, and, count } from "drizzle-orm";
+import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 
 export async function GET(req) {
   try {
     const token = req.cookies.get("user_token")?.value;
 
-    if (!token) {
+    if (!token)
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
 
     let decoded;
     try {
@@ -54,50 +53,38 @@ export async function GET(req) {
       );
     }
 
-    // Get total count
-    const [totalResult] = await db
-      .select({ count: count() })
+    // Get stats by status
+    const stats = await db
+      .select({
+        status: USERS.status,
+        count: count()
+      })
       .from(ORG_USERS)
+      .innerJoin(USERS, eq(ORG_USERS.user_id, USERS.id))
       .where(
         and(
           eq(ORG_USERS.org_id, orgId),
           eq(ORG_USERS.role_id, userRole.id)
         )
-      );
+      )
+      .groupBy(USERS.status);
 
-    // Get active count
-    const [activeResult] = await db
-      .select({ count: count() })
-      .from(ORG_USERS)
-      .innerJoin(USERS, eq(ORG_USERS.user_id, USERS.id))
-      .where(
-        and(
-          eq(ORG_USERS.org_id, orgId),
-          eq(ORG_USERS.role_id, userRole.id),
-        )
-      );
-
-    // Get inactive count
-    const [inactiveResult] = await db
-      .select({ count: count() })
-      .from(ORG_USERS)
-      .innerJoin(USERS, eq(ORG_USERS.user_id, USERS.id))
-      .where(
-        and(
-          eq(ORG_USERS.org_id, orgId),
-          eq(ORG_USERS.role_id, userRole.id),
-        )
-      );
+    // Calculate totals
+    const total = stats.reduce((sum, item) => sum + item.count, 0);
+    const active = stats.find(item => item.status === 'active')?.count || 0;
+    const suspended = stats.find(item => item.status === 'suspended')?.count || 0;
+    const deleted = stats.find(item => item.status === 'deleted')?.count || 0;
 
     return NextResponse.json({
-      total: totalResult.count,
-      active: activeResult.count,
-      inactive: inactiveResult.count
-    });
+      total,
+      active,
+      suspended,
+      deleted
+    }, { status: 200 });
   } catch (error) {
     console.error("Error fetching user stats:", error);
     return NextResponse.json(
-      { message: "Internal server error" },
+      { message: "Internal server error", error: error.message },
       { status: 500 }
     );
   }

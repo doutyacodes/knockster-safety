@@ -1,3 +1,5 @@
+// '/api/moderator/users'
+
 import { db } from "@/utils/index";
 import { 
   USERS, USER_PROFILES, ROLES, USER_ROLES, 
@@ -58,15 +60,22 @@ export async function GET(req) {
       );
     }
 
-    // Get users in this organisation
+    // Get users in this organisation with all necessary fields
     const users = await db
       .select({
         id: USERS.id,
         email: USERS.email,
+        status: USERS.status,
+        timezone: USERS.timezone,
         created_at: USERS.created_at,
+        updated_at: USERS.updated_at,
         full_name: USER_PROFILES.full_name,
         phone: USER_PROFILES.phone,
         profile_pic_url: USER_PROFILES.profile_pic_url,
+        safe_pin_hash: USER_PROFILES.safe_pin_hash,
+        danger_pin_hash: USER_PROFILES.danger_pin_hash,
+        emergency_contact_name: USER_PROFILES.emergency_contact_name,
+        emergency_contact_phone: USER_PROFILES.emergency_contact_phone,
       })
       .from(ORG_USERS)
       .innerJoin(USERS, eq(ORG_USERS.user_id, USERS.id))
@@ -74,7 +83,8 @@ export async function GET(req) {
       .where(
         and(
           eq(ORG_USERS.org_id, orgId),
-          eq(ORG_USERS.role_id, userRole.id)
+          eq(ORG_USERS.role_id, userRole.id),
+          eq(ORG_USERS.status, 'active') // Only active organisation users
         )
       )
       .orderBy(desc(USERS.created_at));
@@ -88,7 +98,6 @@ export async function GET(req) {
     );
   }
 }
-
 export async function POST(req) {
   try {
     const token = req.cookies.get("user_token")?.value;
