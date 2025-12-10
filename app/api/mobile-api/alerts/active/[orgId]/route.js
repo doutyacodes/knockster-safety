@@ -9,7 +9,7 @@ import { NextResponse } from 'next/server';
  */
 export async function GET(request, { params }) {
   try {
-    const { orgId } = params;
+    const { orgId } = await params;
 
     if (!orgId) {
       return NextResponse.json(

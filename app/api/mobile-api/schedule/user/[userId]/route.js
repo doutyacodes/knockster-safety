@@ -9,7 +9,7 @@ import { NextResponse } from 'next/server';
  */
 export async function GET(request, { params }) {
   try {
-    const { userId } = params;
+    const { userId } = await params;
 
     if (!userId) {
       return NextResponse.json(
@@ -69,7 +69,7 @@ export async function GET(request, { params }) {
  */
 export async function PUT(request, { params }) {
   try {
-    const { userId } = params;
+    const { userId } = await params;
     const body = await request.json();
     const { timing_id, label, time, active_days } = body;
 
@@ -155,7 +155,7 @@ export async function PUT(request, { params }) {
  */
 export async function DELETE(request, { params }) {
   try {
-    const { userId } = params;
+    const { userId } = await params;
     const body = await request.json();
     const { timing_id } = body;
 

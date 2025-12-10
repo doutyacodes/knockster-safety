@@ -26,7 +26,7 @@ export async function POST(req, { params }) {
     }
 
     const moderatorId = decoded.id;
-    const { checkinId } = params;
+    const { checkinId } = await params;
     const body = await req.json();
     const { escalation_type } = body; // 'police', 'family', 'admin'
 

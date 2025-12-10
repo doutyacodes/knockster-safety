@@ -32,7 +32,7 @@ export async function GET(req, { params }) {
     }
 
     const moderatorId = decoded.id;
-    const { checkinId } = params;
+    const { checkinId } = await params;
 
     // Get moderator's organisation
     const [moderatorOrg] = await db
@@ -219,7 +219,7 @@ export async function POST(req, { params }) {
     }
 
     const moderatorId = decoded.id;
-    const { checkinId } = params;
+    const { checkinId } = await params;
     const body = await req.json();
     const { call_status, notes } = body;
 
@@ -329,7 +329,7 @@ export async function PUT(req, { params }) {
     }
 
     const moderatorId = decoded.id;
-    const { checkinId } = params;
+    const { checkinId } = await params;
 
     // Update checkin status to resolved
     await db.update(SAFETY_CHECKINS)

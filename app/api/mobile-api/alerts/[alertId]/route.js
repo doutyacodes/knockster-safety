@@ -16,7 +16,7 @@ import { NextResponse } from 'next/server';
  */
 export async function GET(request, { params }) {
   try {
-    const { alertId } = params;
+    const { alertId } = await params;
 
     if (!alertId) {
       return NextResponse.json(
@@ -113,7 +113,7 @@ export async function GET(request, { params }) {
  */
 export async function PUT(request, { params }) {
   try {
-    const { alertId } = params;
+    const { alertId } = await params;
     const body = await request.json();
     const { admin_id, status, notes } = body;
 

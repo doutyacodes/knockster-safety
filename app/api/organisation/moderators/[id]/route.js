@@ -35,7 +35,7 @@ export async function DELETE(req, { params }) {
     }
 
     const orgId = orgUser.org_id;
-    const { id } = params;
+    const { id } = await params;
 
     // Check if moderator is in that org
     const [existing] = await db

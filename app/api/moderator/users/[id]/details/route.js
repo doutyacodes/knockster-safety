@@ -21,7 +21,7 @@ export async function GET(req, { params }) {
       return NextResponse.json({ message: "Invalid token" }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Get user details with profile and organisation info
     const user = await db
