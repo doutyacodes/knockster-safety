@@ -50,6 +50,7 @@ export async function POST(req) {
       .limit(1);
 
     if (userResult.length === 0) {
+      console.log('Login Debug: User not found for email:', email.toLowerCase());
       return NextResponse.json(
         { message: "Invalid email or password" },
         { status: 401 }
@@ -57,6 +58,7 @@ export async function POST(req) {
     }
 
     const foundUser = userResult[0];
+    console.log('Login Debug: foundUser', foundUser);
 
     // Check if user has admin role (super_admin, org_admin, or moderator)
     const allowedRoles = ['super_admin', 'org_admin', 'moderator'];
@@ -75,7 +77,7 @@ export async function POST(req) {
 
     if (!isPasswordValid) {
       return NextResponse.json(
-        { message: "Invalid email or password" },
+        { message: "Wrong password" },
         { status: 401 }
       );
     }

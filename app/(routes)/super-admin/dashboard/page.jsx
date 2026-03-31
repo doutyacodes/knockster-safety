@@ -234,7 +234,7 @@ export default function OrganisationsPage() {
 
   const handleViewOrganisation = (org) => {
     // Navigate to organisation details page
-    window.location.href = `/admin/organisations/${org.id}`;
+    alert('Organisation details page coming soon!');
   };
 
   const filteredOrganisations = organisations.filter(org => {

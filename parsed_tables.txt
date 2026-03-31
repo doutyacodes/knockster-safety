@@ -1,0 +1,185 @@
+CREATE TABLE `admin_call_logs` (
+  `id` int NOT NULL,
+  `alert_id` int NOT NULL,
+  `admin_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `call_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `call_status` enum('initiated','ringing','attended_safe','attended_not_safe','not_attended','failed') NOT NULL,
+  `call_duration_seconds` int DEFAULT NULL,
+  `notes` text
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `app_settings` (
+  `id` int NOT NULL,
+  `org_id` int DEFAULT NULL,
+  `setting_key` varchar(100) NOT NULL,
+  `setting_value` text NOT NULL,
+  `is_global` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `audit_logs` (
+  `id` int NOT NULL,
+  `user_id` int DEFAULT NULL,
+  `org_id` int DEFAULT NULL,
+  `action` varchar(100) NOT NULL,
+  `entity_type` varchar(50) DEFAULT NULL,
+  `entity_id` int DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `details` json DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `notification_logs` (
+  `id` int NOT NULL,
+  `checkin_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `notification_type` enum('initial_checkin','snooze_reminder_1','snooze_reminder_2','snooze_reminder_3','admin_alert') NOT NULL,
+  `device_token` varchar(255) DEFAULT NULL,
+  `sent_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `delivery_status` enum('sent','delivered','failed') NOT NULL DEFAULT 'sent',
+  `error_message` text
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `organisations` (
+  `id` int NOT NULL,
+  `name` varchar(200) NOT NULL,
+  `type` varchar(100) DEFAULT NULL,
+  `profile_pic_url` varchar(255) DEFAULT NULL,
+  `address` varchar(255) DEFAULT NULL,
+  `contact_email` varchar(150) DEFAULT NULL,
+  `contact_phone` varchar(20) DEFAULT NULL,
+  `status` enum('active','suspended','deleted') NOT NULL DEFAULT 'active',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `org_escalation_chain` (
+  `id` int NOT NULL,
+  `org_id` int NOT NULL,
+  `admin_id` int NOT NULL,
+  `escalation_order` int NOT NULL,
+  `wait_time_minutes` int NOT NULL DEFAULT '5',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `org_users` (
+  `id` int NOT NULL,
+  `org_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `role_id` int NOT NULL,
+  `is_primary_admin` tinyint(1) DEFAULT '0',
+  `joined_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `left_at` timestamp NULL DEFAULT NULL,
+  `status` enum('active','inactive') NOT NULL DEFAULT 'active',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `roles` (
+  `id` int NOT NULL,
+  `name` varchar(50) NOT NULL,
+  `display_name` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `safety_alerts` (
+  `id` int NOT NULL,
+  `checkin_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `org_id` int NOT NULL,
+  `alert_type` enum('danger_pin_entered','no_response_after_snooze','admin_call_failed','manual_alert') NOT NULL,
+  `priority` enum('low','medium','high','critical') NOT NULL DEFAULT 'medium',
+  `alert_status` enum('pending','acknowledged','in_progress','resolved','false_alarm') NOT NULL DEFAULT 'pending',
+  `alert_sent_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `resolved_at` timestamp NULL DEFAULT NULL,
+  `resolved_by` int DEFAULT NULL,
+  `resolution_notes` text,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `safety_checkins` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `timing_id` int NOT NULL,
+  `org_id` int NOT NULL,
+  `checkin_date` date NOT NULL,
+  `scheduled_time` time NOT NULL,
+  `status` enum('pending','acknowledged_safe','acknowledged_danger','snoozed','escalated_no_response','resolved') NOT NULL DEFAULT 'pending',
+  `user_response_time` timestamp NULL DEFAULT NULL,
+  `pin_type_used` enum('safe','danger') DEFAULT NULL,
+  `snooze_count` int NOT NULL DEFAULT '0',
+  `last_snooze_at` timestamp NULL DEFAULT NULL,
+  `resolved_at` timestamp NULL DEFAULT NULL,
+  `resolved_by` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `safety_snooze_logs` (
+  `id` int NOT NULL,
+  `checkin_id` int NOT NULL,
+  `snooze_number` int NOT NULL,
+  `sent_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `notification_delivered` tinyint(1) DEFAULT '1'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `safety_timings` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `org_id` int NOT NULL,
+  `label` varchar(50) NOT NULL,
+  `time` time NOT NULL,
+  `active_days` json NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `users` (
+  `id` int NOT NULL,
+  `email` varchar(150) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `status` enum('active','suspended','deleted') NOT NULL DEFAULT 'active',
+  `timezone` varchar(50) DEFAULT 'UTC',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `user_devices` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `device_token` varchar(255) NOT NULL,
+  `device_type` enum('ios','android') NOT NULL,
+  `device_name` varchar(100) DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `last_used_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `user_profiles` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `full_name` varchar(150) DEFAULT NULL,
+  `phone` varchar(20) DEFAULT NULL,
+  `profile_pic_url` varchar(255) DEFAULT NULL,
+  `safe_pin_hash` varchar(255) DEFAULT NULL,
+  `danger_pin_hash` varchar(255) DEFAULT NULL,
+  `emergency_contact_name` varchar(150) DEFAULT NULL,
+  `emergency_contact_phone` varchar(20) DEFAULT NULL,
+  `safe_pin` varchar(10) DEFAULT NULL,
+  `danger_pin` varchar(10) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `user_roles` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `role_id` int NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

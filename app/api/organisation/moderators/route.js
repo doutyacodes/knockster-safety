@@ -66,6 +66,7 @@ export async function GET(req) {
         full_name: USER_PROFILES.full_name,
         phone: USER_PROFILES.phone,
         profile_pic_url: USER_PROFILES.profile_pic_url,
+        is_active: eq(ORG_USERS.status, 'active'), // Add active status
       })
       .from(ORG_USERS)
       .innerJoin(USERS, eq(ORG_USERS.user_id, USERS.id))
@@ -185,11 +186,33 @@ export async function POST(req) {
         role_id: moderatorRole.id,
       });
 
-      return newUserId;
+      // Fetch the full moderator details just like the GET route
+      const [newModerator] = await tx
+        .select({
+          id: USERS.id,
+          email: USERS.email,
+          created_at: USERS.created_at,
+          full_name: USER_PROFILES.full_name,
+          phone: USER_PROFILES.phone,
+          profile_pic_url: USER_PROFILES.profile_pic_url,
+          is_active: eq(ORG_USERS.status, 'active'), // Return boolean for UI
+        })
+        .from(USERS)
+        .leftJoin(USER_PROFILES, eq(USERS.id, USER_PROFILES.user_id))
+        .innerJoin(ORG_USERS, eq(USERS.id, ORG_USERS.user_id))
+        .where(
+          and(
+            eq(USERS.id, newUserId),
+            eq(ORG_USERS.org_id, orgId)
+          )
+        )
+        .limit(1);
+
+      return newModerator;
     });
 
     return NextResponse.json(
-      { message: "Moderator created successfully", id: result },
+      { message: "Moderator created successfully", moderator: result },
       { status: 201 }
     );
   } catch (error) {
